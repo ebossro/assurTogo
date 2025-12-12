@@ -27,9 +27,11 @@
             <div class="col-md-3">
                 <select class="form-select text-muted" name="statut" onchange="this.form.submit()">
                     <option value="">Tous les statuts</option>
-                    <option value="actif" {{ request('statut') == 'actif' ? 'selected' : '' }}>Actif</option>
                     <option value="en_attente" {{ request('statut') == 'en_attente' ? 'selected' : '' }}>En attente</option>
-                    <option value="inactif" {{ request('statut') == 'inactif' ? 'selected' : '' }}>Inactif</option>
+                    <option value="rendez_vous_planifie" {{ request('statut') == 'rendez_vous_planifie' ? 'selected' : '' }}>RDV Planifié</option>
+                    <option value="actif" {{ request('statut') == 'actif' ? 'selected' : '' }}>Actif</option>
+                    <option value="suspendu" {{ request('statut') == 'suspendu' ? 'selected' : '' }}>Suspendu</option>
+                    <option value="resilie" {{ request('statut') == 'resilie' ? 'selected' : '' }}>Résilié</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -86,10 +88,11 @@
                         <td>
                             <span @class([
                                 'badge rounded-pill px-3 py-2',
-                                'bg-primary' => $police->statut === 'actif',
-                                'bg-success' => $police->statut === 'en_attente',
-                                'bg-danger'  => $police->statut === 'inactif',
-                                'bg-light text-dark' => !in_array($police->statut, ['actif', 'en_attente', 'inactif']),
+                                'bg-warning text-dark' => $police->statut === 'en_attente',
+                                'bg-info text-dark' => $police->statut === 'rendez_vous_planifie',
+                                'bg-success' => $police->statut === 'actif',
+                                'bg-danger' => $police->statut === 'suspendu',
+                                'bg-dark' => $police->statut === 'resilie',
                             ])>
                                 {{ ucfirst(str_replace('_', ' ', $police->statut)) }}
                             </span>

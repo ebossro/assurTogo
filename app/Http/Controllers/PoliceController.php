@@ -70,7 +70,7 @@ class PoliceController extends Controller
             'habitudes_vie' => 'nullable|string',
             'consentement_conditions' => 'accepted',
 
-            // Bénéficiaires (array)
+            // Bénéficiaires
             'beneficiaires' => 'nullable|array',
             'beneficiaires.*.nom' => 'required_with:beneficiaires|string',
             'beneficiaires.*.prenom' => 'required_with:beneficiaires|string',
@@ -121,7 +121,7 @@ class PoliceController extends Controller
             'formule_id' => $formule->id,
             'couverture' => 'Gamme ' . $validated['formule'],
             'dateDebut' => now(),
-            'dateFin' => now()->addYear(), // Contrat annuel par défaut
+            'dateFin' => now()->addMonth(1),
             'primeMensuelle' => $prime,
             'frequence_paiement' => $validated['frequence_paiement'],
             'antecedents_medicaux' => $validated['antecedents_medicaux'],
@@ -129,7 +129,7 @@ class PoliceController extends Controller
             'allergies' => $validated['allergies'],
             'habitudes_vie' => $validated['habitudes_vie'],
             'statut' => 'en_attente',
-            'etat' => 'Actif',
+
         ]);
 
         // 6. Enregistrement des bénéficiaires

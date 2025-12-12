@@ -32,8 +32,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/polices', [AdminController::class, 'polices'])->name('admin.polices');
     Route::get('/admin/polices/{police}', [AdminController::class, 'showPolice'])->name('admin.polices.show');
-    Route::post('/admin/polices/{police}/validate', [AdminController::class, 'validatePolice'])->name('admin.polices.validate');
+    Route::post('/admin/polices/{police}/schedule', [AdminController::class, 'scheduleMeeting'])->name('admin.polices.schedule');
+    Route::post('/admin/polices/{police}/validate-subscription', [AdminController::class, 'validateSubscription'])->name('admin.polices.validate_subscription');
     Route::post('/admin/polices/{police}/reject', [AdminController::class, 'rejectPolice'])->name('admin.polices.reject');
+    Route::post('/admin/polices/{police}/suspend', [AdminController::class, 'suspendPolice'])->name('admin.polices.suspend');
+    Route::post('/admin/polices/{police}/reactivate', [AdminController::class, 'reactivatePolice'])->name('admin.polices.reactivate');
+    Route::post('/admin/polices/{police}/resiliate', [AdminController::class, 'resiliatePolice'])->name('admin.polices.resiliate');
+    Route::post('/admin/polices/{police}/print', [AdminController::class, 'printPolice'])->name('admin.polices.print');
     Route::get('/admin/sinistres', [AdminController::class, 'sinistres'])->name('admin.sinistres');
     Route::get('/admin/sinistres/{sinistre}', [AdminController::class, 'showSinistre'])->name('admin.sinistres.show');
     Route::post('/admin/sinistres/{sinistre}/approve', [AdminController::class, 'approveSinistre'])->name('admin.sinistres.approve');

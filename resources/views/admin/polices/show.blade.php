@@ -7,21 +7,97 @@
             <div class="d-flex align-items-center gap-3 mb-1">
                 <a href="{{ route('admin.polices') }}" class="btn btn-light rounded-circle shadow-sm" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-arrow-left"></i></a>
                 <h2 class="fw-bold text-dark mb-0">Police {{ $police->numeroPolice }}</h2>
+                @php
+                    $badgeClass = match($police->statut) {
+                        'en_attente' => 'bg-warning text-dark',
+                        'rendez_vous_planifie' => 'bg-info text-dark',
+                        'actif' => 'bg-success text-white',
+                        'suspendu' => 'bg-danger text-white',
+                        'resilie' => 'bg-dark text-white',
+                        default => 'bg-secondary text-white'
+                    };
+                    $statusLabel = match($police->statut) {
+                        'en_attente' => 'En attente',
+                        'rendez_vous_planifie' => 'RDV Planifié',
+                        'actif' => 'Actif',
+                        'suspendu' => 'Suspendu',
+                        'resilie' => 'Résilié',
+                        default => $police->statut
+                    };
+                @endphp
+                <span class="badge {{ $badgeClass }} fs-7 px-3 py-2 rounded-pill ms-2">{{ $statusLabel }}</span>
             </div>
-            <p class="text-muted ms-5 ps-2">Détails de la souscription et de l'assuré</p>
+            <p class="text-muted ms-5 ps-2">
+                @switch($police->statut)
+                    @case('en_attente')
+                        En attente de validation par l'administrateur.
+                        @break
+                    @case('rendez_vous_planifie')
+                        Rendez-vous fixé. En attente de la visite client pour activation.
+                        @if($police->date_rendez_vous)
+                            <strong>({{ $police->date_rendez_vous->format('d/m/Y H:i') }})</strong>
+                        @endif
+                        @break
+                    @case('actif')
+                        Police en vigueur. Couverture active.
+                        @break
+                    @case('suspendu')
+                        Police temporairement désactivée.
+                        @break
+                    @case('resilie')
+                        Contrat terminé définitivement.
+                        @break
+                @endswitch
+            </p>
         </div>
         <div class="d-flex gap-2">
             @if($police->statut === 'en_attente')
-            <form action="{{ route('admin.polices.validate', $police) }}" method="POST">
-                @csrf
-                <button type="submit" class="btn btn-primary shadow-sm"><i class="bi bi-check-lg me-2"></i>Valider la demande</button>
-            </form>
-            <form action="{{ route('admin.polices.reject', $police) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir rejeter cette demande ?');">
-                @csrf
-                <button type="submit" class="btn btn-danger shadow-sm"><i class="bi bi-x-lg me-2"></i>Rejeter</button>
-            </form>
+                <!-- EN ATTENTE -> Planifier RDV -->
+                <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#scheduleMeetingModal">
+                    <i class="bi bi-calendar-event me-2"></i>Rendez-vous
+                </button>
+                
+                <form action="{{ route('admin.polices.reject', $police) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir rejeter cette demande ?');">
+                    @csrf
+                    <button type="submit" class="btn btn-danger shadow-sm"><i class="bi bi-x-lg me-2"></i>Rejeter</button>
+                </form>
+
+            @elseif($police->statut === 'rendez_vous_planifie')
+                <!-- RDV PLANIFIE -> Valider -->
+                 <form action="{{ route('admin.polices.validate_subscription', $police) }}" method="POST" onsubmit="return confirm('Confirmer la validation du dossier et l\'activation du compte ?');">
+                    @csrf
+                    <button type="submit" class="btn btn-success shadow-sm"><i class="bi bi-check-circle me-2"></i>Valider</button>
+                </form>
+                 <form action="{{ route('admin.polices.reject', $police) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler ?');">
+                     @csrf
+                     <button type="submit" class="btn btn-danger shadow-sm"><i class="bi bi-x-lg me-2"></i>Rejeter</button>
+                 </form>
+
+            @elseif($police->statut === 'actif')
+                <!-- ACTIF -->
+                <form action="{{ route('admin.polices.suspend', $police) }}" method="POST" onsubmit="return confirm('Voulez-vous suspendre cette police ?');">
+                    @csrf
+                    <button type="submit" class="btn btn-warning text-white shadow-sm"><i class="bi bi-pause-circle me-2"></i>Suspendre</button>
+                </form>
+                <form action="{{ route('admin.polices.resiliate', $police) }}" method="POST" onsubmit="return confirm('Attention : Cette action est irréversible. Voulez-vous résilier ce contrat ?');">
+                    @csrf
+                    <button type="submit" class="btn btn-danger shadow-sm"><i class="bi bi-x-circle me-2"></i>Résilier</button>
+                </form>
+            @elseif($police->statut === 'suspendu')
+                <!-- SUSPENDU -->
+                <form action="{{ route('admin.polices.reactivate', $police) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-success shadow-sm"><i class="bi bi-play-circle me-2"></i>Réactiver</button>
+                </form>
+                <form action="{{ route('admin.polices.resiliate', $police) }}" method="POST" onsubmit="return confirm('Attention : Cette action est irréversible. Voulez-vous résilier ce contrat ?');">
+                    @csrf
+                    <button type="submit" class="btn btn-danger shadow-sm"><i class="bi bi-x-circle me-2"></i>Résilier</button>
+                </form>
+            @elseif($police->statut === 'resilie')
+                
             @endif
-            <button class="btn btn-light border shadow-sm"><i class="bi bi-printer me-2"></i>Imprimer</button>
+            <button type="button" class="btn btn-light border shadow-sm"><i class="bi bi-printer me-2"></i>Imprimer</button>
+        </div>
         </div>
     </div>
 </div>
@@ -135,7 +211,11 @@
             </div>
             <div class="card-body p-4 pt-0 text-center">
                  <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
-                    {{ substr($police->user->prenom ?? 'U', 0, 1) }}{{ substr($police->user->name ?? 'U', 0, 1) }}
+                    @if ($police->user->photo_profil)
+                        <img src="{{ asset('storage/' . $police->user->photo_profil) }}" alt="Photo" class="rounded-circle" style="width: 80px; height: 80px;">
+                    @else
+                        {{ substr($police->user->prenom ?? 'U', 0, 1) }}{{ substr($police->user->name ?? 'U', 0, 1) }}
+                    @endif
                 </div>
                 <h5 class="fw-bold">{{ $police->user->prenom }} {{ $police->user->name }}</h5>
                 <p class="text-muted mb-4">{{ $police->user->email }}</p>
@@ -184,11 +264,32 @@
                         </div>
                     </div>
                 </div>
-                
-                <hr class="my-4">
-                
-                <a href="#" class="btn btn-outline-primary w-100">Voir le profil complet</a>
             </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Planification RDV -->
+<div class="modal fade" id="scheduleMeetingModal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Planifier un rendez-vous</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.polices.schedule', $police) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="text-muted">Sélectionnez la date et l'heure du rendez-vous pour la validation du dossier en agence.</p>
+                    <div class="mb-3">
+                        <label for="date_rendez_vous" class="form-label">Date et Heure</label>
+                        <input type="datetime-local" class="form-control" name="date_rendez_vous" required min="{{ now()->format('Y-m-d\TH:i') }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Envoyer l'invitation</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

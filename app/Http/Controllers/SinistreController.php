@@ -32,7 +32,7 @@ class SinistreController extends Controller
      */
     public function create()
     {
-        $polices = request()->user()->polices()->where('etat', 'Actif')->get();
+        $polices = request()->user()->polices()->where('statut', 'actif')->get();
         return view('sinistres.create', compact('polices'));
     }
 

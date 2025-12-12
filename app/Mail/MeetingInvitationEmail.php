@@ -10,40 +10,30 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Police;
 
-class PaymentLinkEmail extends Mailable
+class MeetingInvitationEmail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $police;
+    public $dateRendezVous;
 
-    /**
-     * Create a new message instance.
-     */
     public function __construct(Police $police)
     {
         $this->police = $police;
+        $this->dateRendezVous = $police->date_rendez_vous;
     }
 
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Validation de votre demande - Action requise',
+            subject: 'Invitation à votre rendez-vous de validation - AssurTogo',
         );
     }
-
-    /**
-     * Get the message content definition.
-     */
+    
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.polices.payment_link',
-            with: [
-                'url' => url('/paiement-mock?police=' . $this->police->id),
-            ],
+            view: 'emails.meeting_invitation',
         );
     }
 

@@ -28,8 +28,8 @@ return new class extends Migration {
             $table->date('dateFin');
             $table->decimal('primeMensuelle', 10, 2);
             $table->enum('frequence_paiement', ['Mensuel', 'Trimestriel', 'Annuel'])->default('Mensuel');
-            $table->enum('statut', ['en_attente', 'actif', 'suspendu', 'resilie'])->default('en_attente');
-            $table->string('etat')->default('Actif'); // Actif / Inactif
+            $table->enum('statut', ['en_attente', 'rendez_vous_planifie', 'actif', 'suspendu', 'resilie'])->default('en_attente');
+            $table->dateTime('date_rendez_vous')->nullable();
             $table->timestamps();
         });
     }

@@ -19,7 +19,7 @@ class Police extends Model
         'primeMensuelle',
         'frequence_paiement',
         'statut',
-        'etat',
+        'date_rendez_vous',
         // Infos médicales
         'antecedents_medicaux',
         'medicaments_actuels',
@@ -28,6 +28,7 @@ class Police extends Model
     ];
 
     protected $casts = [
+        'date_rendez_vous' => 'datetime',
         'dateDebut' => 'date',
         'dateFin' => 'date',
         'primeMensuelle' => 'decimal:2',

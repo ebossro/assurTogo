@@ -165,7 +165,7 @@
                         </td>
                         <td>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-light btn-sm text-muted"><i class="bi bi-eye"></i></button>
+                                <a  href="{{ route('admin.polices.show', $police->id) }}"><button class="btn btn-light btn-sm text-muted"><i class="bi bi-eye"></i></button></a>
                                 <button class="btn btn-light btn-sm text-muted"><i class="bi bi-download"></i></button>
                             </div>
                         </td>
