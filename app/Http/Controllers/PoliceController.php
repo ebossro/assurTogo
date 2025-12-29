@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\Role;
 use App\Models\Police;
 use Illuminate\Support\Facades\Auth;
-
 use App\Models\Formule;
+use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class PoliceController extends Controller
 {
@@ -16,8 +18,24 @@ class PoliceController extends Controller
      */
     public function index()
     {
-        $polices = request()->user()->polices()->latest()->get();
-        return view('polices.index', compact('polices'));
+        $police = request()->user()->police;
+        
+        $daysRemaining = null;
+        $isExpired = false;
+        $isExpiringSoon = false;
+        
+        if ($police && $police->dateFin) {
+            // Calculer le nombre de jours restants avec Carbon
+            $dateFin = Carbon::parse($police->dateFin);
+            $now = Carbon::now();
+            
+            $daysRemaining = ceil($now->diffInDays($dateFin, false)); 
+            
+            $isExpired = $daysRemaining < 0;
+            $isExpiringSoon = !$isExpired && $daysRemaining >= 0 && $daysRemaining <= 7;
+        }
+
+        return view('polices.index', compact('police', 'isExpired', 'isExpiringSoon', 'daysRemaining'));
     }
 
     /**
@@ -25,20 +43,51 @@ class PoliceController extends Controller
      */
     public function create()
     {
+        $police = request()->user()->police;
+        $isRenewal = false;
+        
+        if ($police && $police->dateFin) {
+            // Calculer avec Carbon pour vérifier si la police est expirée
+            $dateFin = Carbon::parse($police->dateFin)->startOfDay();
+            $now = Carbon::now()->startOfDay();
+            $daysRemainingRaw = $now->diffInDays($dateFin, false);
+            $isExpired = $daysRemainingRaw < 0;
+            
+            // Si la police n'est pas expirée, on ne peut pas renouveler
+            if (!$isExpired) {
+                return redirect()->route('polices.index')->with('info', 'Vous avez déjà une police active.');
+            }
+            
+            // Si la police est expirée, c'est un renouvellement
+            $isRenewal = true;
+        }
+        
         $formules = Formule::all();
-        return view('polices.create', compact('formules'));
+        return view('polices.create', compact('formules', 'isRenewal'));
     }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    private const PRIX_BENEFICIAIRE = 5000;
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
+        $user = request()->user();
+        if ($user->police && $user->police->dateFin) {
+            // Vérifier avec Carbon si la police est expirée pour permettre le renouvellement
+            $dateFin = Carbon::parse($user->police->dateFin)->startOfDay();
+            $now = Carbon::now()->startOfDay();
+            $daysRemainingRaw = $now->diffInDays($dateFin, false);
+            $isExpired = $daysRemainingRaw < 0;
+
+            // Si la police n'est pas expirée, on ne peut pas renouveler
+            if (!$isExpired) {
+                return redirect()->route('polices.index')->with('error', 'Vous avez déjà une police active. Vous ne pouvez renouveler que si votre police est expirée.');
+            }
+            
+            // Supprimer l'ancienne police expirée pour créer la nouvelle
+            $user->police->delete();
+        }
+
         // 1. Validation de tous les champs
         $validated = $request->validate([
             // Infos User
@@ -46,7 +95,7 @@ class PoliceController extends Controller
             'prenom' => 'required|string',
             'date_naissance' => 'required|date',
             'sexe' => 'required|in:M,F',
-            'photo_profil' => 'required|image|max:2048', // Obligatoire
+            'photo_profil' => 'required|image|max:2048',
             'type_piece' => 'required|string',
             'numero_piece' => 'required|string',
             'date_expiration_piece' => 'required|date',
@@ -63,7 +112,6 @@ class PoliceController extends Controller
 
             // Infos Police
             'formule' => 'required|exists:formules,nom',
-            'frequence_paiement' => 'required|in:Mensuel,Trimestriel,Annuel',
             'antecedents_medicaux' => 'nullable|string',
             'medicaments_actuels' => 'nullable|string',
             'allergies' => 'nullable|string',
@@ -71,7 +119,19 @@ class PoliceController extends Controller
             'consentement_conditions' => 'accepted',
 
             // Bénéficiaires
-            'beneficiaires' => 'nullable|array',
+            'beneficiaires' => ['nullable', 'array', function ($attribute, $value, $fail) use ($request) {
+                // Limites strictes par formule
+                $limits = [
+                    'Basique' => 0,
+                    'Standard' => 2,
+                    'Confort' => 4,
+                    'Premium' => 8,
+                ];
+                $formule = $request->input('formule');
+                if (isset($limits[$formule]) && count($value) > $limits[$formule]) {
+                    $fail("La formule {$formule} ne permet pas plus de {$limits[$formule]} bénéficiaire(s).");
+                }
+            }],
             'beneficiaires.*.nom' => 'required_with:beneficiaires|string',
             'beneficiaires.*.prenom' => 'required_with:beneficiaires|string',
             'beneficiaires.*.relation' => 'required_with:beneficiaires|string',
@@ -109,21 +169,18 @@ class PoliceController extends Controller
         ]);
 
         // 4. Calcul du prix
-        $formule = Formule::where('nom', $validated['formule'])->firstOrFail();
-        $prixBase = $formule->prix_mensuel;
-        $nbBeneficiaires = isset($validated['beneficiaires']) ? count($validated['beneficiaires']) : 0;
-        $prime = $prixBase + ($nbBeneficiaires * self::PRIX_BENEFICIAIRE);
-
+        $formule = Formule::where('nom', $validated['formule'])->first();
+        $prime = $formule->prix_mensuel;
+        
         // 5. Création de la Police
-        $police = $user->polices()->create([
+        $police = $user->police()->create([
             'numeroPolice' => 'POL-' . strtoupper(uniqid()),
             'typePolice' => 'Assurance Santé ' . $validated['formule'], // Description
             'formule_id' => $formule->id,
             'couverture' => 'Gamme ' . $validated['formule'],
             'dateDebut' => now(),
-            'dateFin' => now()->addMonth(1),
+            'dateFin' => now()->copy()->addMonth(),
             'primeMensuelle' => $prime,
-            'frequence_paiement' => $validated['frequence_paiement'],
             'antecedents_medicaux' => $validated['antecedents_medicaux'],
             'medicaments_actuels' => $validated['medicaments_actuels'],
             'allergies' => $validated['allergies'],
