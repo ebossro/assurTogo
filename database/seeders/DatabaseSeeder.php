@@ -26,12 +26,12 @@ class DatabaseSeeder extends Seeder
 
         // Création de l'admin
         User::firstOrCreate(
-            ['email' => 'emmanuel@assurconnect.com'],
+            ['email' => 'emmanuel@assurtogo.com'],
             [
                 'prenom' => 'Emmanuel',
                 'name' => 'Admin',
                 'telephone' => '70297284',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('ebossro'),
                 'role_id' => 1,
             ]
         );
