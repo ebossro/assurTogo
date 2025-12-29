@@ -3,62 +3,76 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Document;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the user's documents.
      */
     public function index()
     {
-        //
+        $documents = Document::where('user_id', Auth::id())
+            ->latest()
+            ->paginate(12);
+
+        return view('documents.index', compact('documents'));
+    }
+    /**
+     * Display the specified document.
+     */
+    public function show(Document $document)
+    {
+        // Check authorization
+        if ($document->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $path = storage_path('app/public/' . $document->cheminDocument);
+
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->file($path);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Download the specified document.
      */
-    public function create()
+    public function download(Document $document)
     {
-        //
+        // Check authorization
+        if ($document->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $path = storage_path('app/public/' . $document->cheminDocument);
+
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->download($path, $document->nom . '.' . pathinfo($path, PATHINFO_EXTENSION));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Remove the specified document from storage.
      */
-    public function store(Request $request)
+    public function destroy(Document $document)
     {
-        //
-    }
+        // Vérification des droits
+        if ($document->user_id !== Auth::id()) {
+            abort(403);
+        }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+        Storage::disk('public')->delete($document->cheminDocument);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
+        // Suppression de l’enregistrement en base
+        $document->delete();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return back()->with('success', 'Document supprimé avec succès.');
     }
 }

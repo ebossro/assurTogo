@@ -12,9 +12,9 @@ return new class extends Migration {
     {
         Schema::create('police', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Le client
-            $table->string('numeroPolice')->unique();
-            $table->string('typePolice'); // Gardé pour compatibilité ou comme alias de formule
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('numeroPolice');
+            $table->string('typePolice'); 
             $table->foreignId('formule_id')->constrained('formules')->onDelete('cascade');
             
             // Informations médicales
@@ -23,12 +23,11 @@ return new class extends Migration {
             $table->text('allergies')->nullable();
             $table->text('habitudes_vie')->nullable();
 
-            $table->string('couverture'); // Peut être redondant avec formule, mais on garde
+            $table->string('couverture');
             $table->date('dateDebut');
             $table->date('dateFin');
             $table->decimal('primeMensuelle', 10, 2);
-            $table->enum('frequence_paiement', ['Mensuel', 'Trimestriel', 'Annuel'])->default('Mensuel');
-            $table->enum('statut', ['en_attente', 'rendez_vous_planifie', 'actif', 'suspendu', 'resilie'])->default('en_attente');
+            $table->enum('statut', ['en_attente', 'rendez_vous_planifie', 'actif', 'suspendu', 'resilie', 'expire'])->default('en_attente');
             $table->dateTime('date_rendez_vous')->nullable();
             $table->timestamps();
         });

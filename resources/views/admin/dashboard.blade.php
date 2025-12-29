@@ -2,177 +2,172 @@
 
 @section('content')
 <div class="mb-5" style="margin-top: -70px;">
-    <h2 class="fw-bold text-dark mb-1">Espace Compagnie</h2>
-    <p class="text-muted">Gérez vos polices, sinistres et suivez vos performances</p>
+    <h2 class="fw-bold text-dark mb-2">Tableau de Bord</h2>
+    <p class="text-secondary mb-4">Vue d'ensemble des activités de la compagnie</p>
+
+    <!-- Stats Grid -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-3">
+             <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden text-center text-md-start">
+                <div class="card-body p-4 position-relative">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-2">
+                             <i class="bi bi-people fs-5"></i>
+                        </div>
+                        <span class="text-muted fw-bold small text-uppercase">Assurés Actifs</span>
+                    </div>
+                    <h2 class="fw-bold mb-0 text-dark display-6">{{ number_format($stats['users_count'], 0, '.', ',') }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden text-center text-md-start">
+                <div class="card-body p-4 position-relative">
+                    <div class="d-flex align-items-center mb-2">
+                         <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 me-2">
+                             <i class="bi bi-file-earmark-check fs-5"></i>
+                        </div>
+                        <span class="text-muted fw-bold small text-uppercase">Polices Actives</span>
+                    </div>
+                    <h2 class="fw-bold mb-0 text-dark display-6">{{ number_format($stats['polices_actives'], 0, '.', ',') }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+             <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden text-center text-md-start">
+                <div class="card-body p-4 position-relative">
+                    <div class="d-flex align-items-center mb-2">
+                         <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 me-2">
+                             <i class="bi bi-hourglass-split fs-5"></i>
+                        </div>
+                        <span class="text-muted fw-bold small text-uppercase">Sinistres en Attente</span>
+                    </div>
+                    <h2 class="fw-bold mb-0 text-dark display-6">{{ number_format($stats['sinistres_en_attente'], 0, '.', ',') }}</h2>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden text-center text-md-start">
+                 <div class="card-body p-4 position-relative">
+                    <div class="d-flex align-items-center mb-2">
+                         <div class="bg-info bg-opacity-10 text-info rounded-circle p-2 me-2">
+                             <i class="bi bi-currency-exchange fs-5"></i>
+                        </div>
+                         <span class="text-muted fw-bold small text-uppercase">Revenus Total</span>
+                    </div>
+                    <h2 class="fw-bold mb-0 text-dark display-6 fs-3">{{ number_format($revenu_total, 0, ',', ' ') }} <small class="fs-6 text-muted fw-normal">FCFA</small></h2>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Stats Cards -->
-<div class="row g-4 mb-5">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between mb-4">
-                    <span class="text-muted small">Assurés actifs</span>
-                    <i class="bi bi-people text-muted"></i>
-                </div>
-                <h2 class="fw-bold mb-1">{{ number_format($stats['users_count'], 0, '.', ',') }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-             <div class="card-body p-4">
-                <div class="d-flex justify-content-between mb-4">
-                    <span class="text-muted small">Polices en cours</span>
-                    <i class="bi bi-file-text text-muted"></i>
-                </div>
-                <h2 class="fw-bold mb-1">{{ number_format($stats['polices_actives'], 0, '.', ',') }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-             <div class="card-body p-4">
-                <div class="d-flex justify-content-between mb-4">
-                    <span class="text-muted small">Sinistres en attente</span>
-                    <i class="bi bi-graph-up-arrow text-muted"></i>
-                </div>
-                <h2 class="fw-bold mb-1">{{ $stats['sinistres_en_cours'] }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-             <div class="card-body p-4">
-                <div class="d-flex justify-content-between mb-4">
-                    <span class="text-muted small">Revenus mensuels</span>
-                    <i class="bi bi-currency-dollar text-muted"></i>
-                </div>
-                <h2 class="fw-bold mb-1">{{ number_format($stats['revenu_mensuel'], 0, ',', ' ') }} FCFA</h2>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4 mb-5">
-    <!-- Chart Section -->
+<div class="row g-4">
+    <!-- Left Column: Recent Policies -->
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm rounded-4 h-100">
-            <div class="card-body p-4">
-                <h6 class="fw-bold mb-4">Revenus mensuels (Millions FCFA)</h6>
-                
-                <!-- CSS Bar Chart Mockup -->
-                <div class="d-flex justify-content-between align-items-end" style="height: 300px; padding-bottom: 20px;">
-                    <div class="d-flex flex-column align-items-center gap-2" style="width: 12%;">
-                        <div class="bg-black rounded-top" style="width: 100%; height: 50%;"></div>
-                        <span class="text-muted small">Jan</span>
-                    </div>
-                    <div class="d-flex flex-column align-items-center gap-2" style="width: 12%;">
-                        <div class="bg-black rounded-top" style="width: 100%; height: 65%;"></div>
-                        <span class="text-muted small">Fév</span>
-                    </div>
-                    <div class="d-flex flex-column align-items-center gap-2" style="width: 12%;">
-                        <div class="bg-black rounded-top" style="width: 100%; height: 75%;"></div>
-                        <span class="text-muted small">Mar</span>
-                    </div>
-                    <div class="d-flex flex-column align-items-center gap-2" style="width: 12%;">
-                        <div class="bg-black rounded-top" style="width: 100%; height: 85%;"></div>
-                        <span class="text-muted small">Avr</span>
-                    </div>
-                    <div class="d-flex flex-column align-items-center gap-2" style="width: 12%;">
-                        <div class="bg-black rounded-top" style="width: 100%; height: 80%;"></div>
-                        <span class="text-muted small">Mai</span>
-                    </div>
-                    <div class="d-flex flex-column align-items-center gap-2" style="width: 12%;">
-                        <div class="bg-black rounded-top" style="width: 100%; height: 95%;"></div>
-                        <span class="text-muted small">Juin</span>
-                    </div>
+             <div class="card-header bg-white border-bottom border-light p-4 d-flex justify-content-between align-items-center">
+                <div>
+                     <h5 class="fw-bold mb-0 text-dark">Dernières Souscriptions</h5>
+                     <small class="text-muted">Polices en attente de validation</small>
+                </div>
+                <a href="{{ route('admin.polices') }}" class="btn btn-light bg-light rounded-pill px-3 fw-medium text-dark"><i class="bi bi-arrow-right me-2"></i>Voir tout</a>
+            </div>
+            <div class="card-body p-0">
+                 <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="min-width: 600px;">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4 py-3 border-0 text-muted small text-uppercase">Police / Client</th>
+                                <th class="py-3 border-0 text-muted small text-uppercase">Formule</th>
+                                <th class="py-3 border-0 text-muted small text-uppercase">Date</th>
+                                <th class="py-3 border-0 text-muted small text-uppercase">Statut</th>
+                                <th class="pe-4 py-3 border-0 text-end text-muted small text-uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($recentPolices as $police)
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                         <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold me-3" style="width: 40px; height: 40px;">
+                                            {{ substr($police->user->name ?? 'A', 0, 1) }}
+                                        </div>
+                                        <div>
+                                            <span class="d-block fw-bold text-dark">{{ $police->user->name ?? 'N/A' }}</span>
+                                            <small class="text-muted">{{ $police->numeroPolice }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border fw-normal">{{ $police->typePolice }}</span>
+                                </td>
+                                <td class="text-muted small">
+                                    {{ $police->created_at->format('d/m/Y') }}
+                                </td>
+                                <td>
+                                     <span class="badge bg-warning bg-opacity-10 text-warning px-2 py-1 rounded-pill">En attente</span>
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <a href="{{ route('admin.polices.show', $police) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Gérer</a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">Aucune police en attente.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Sinistres à traiter -->
+    <!-- Right Column: Pending Claims -->
     <div class="col-lg-4">
         <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-bottom border-light p-4">
+                 <h5 class="fw-bold mb-0 text-dark">Sinistres à Traiter</h5>
+                 <small class="text-muted">Déclarations nécessitant une action</small>
+            </div>
             <div class="card-body p-4">
-                <h6 class="fw-bold mb-4">Sinistres à traiter</h6>
-                
                 <div class="d-flex flex-column gap-3">
                     @forelse($recentSinistres as $sinistre)
-                    <div class="border rounded-3 p-3 bg-white">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                             <div>
-                                 <h6 class="fw-bold mb-0 text-dark">{{ $sinistre->police->user->name ?? 'Utilisateur Inconnu' }}</h6>
-                                 <small class="text-muted">CLM-{{ $sinistre->id }}</small>
+                    <div class="card border bg-light shadow-none transition-hover">
+                         <div class="card-body p-3">
+                             <div class="d-flex justify-content-between align-items-start mb-2">
+                                 <div>
+                                      <h6 class="fw-bold mb-0 text-dark">{{ $sinistre->police->user->name ?? 'Assuré' }}</h6>
+                                      <small class="text-muted d-block">Ref: {{ str_replace('SIN-', '', $sinistre->reference) }}</small>
+                                 </div>
+                                 <span class="badge bg-white border text-dark">{{ $sinistre->created_at->diffForHumans() }}</span>
                              </div>
-                             <span class="badge bg-success rounded-pill px-2">En attente</span>
-                        </div>
-                        <div class="mb-3">
-                            <span class="d-block small text-muted">{{ $sinistre->libelle }}</span>
-                            <span class="fw-bold text-dark">{{ number_format($sinistre->montant, 0, ',', ' ') }} FCFA</span>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary btn-sm flex-grow-1"><i class="bi bi-check-lg me-1"></i> Approuver</button>
-                            <button class="btn btn-light border btn-sm flex-grow-1 text-danger"><i class="bi bi-x-lg me-1"></i> Rejeter</button>
-                        </div>
+                             
+                             <div class="d-flex align-items-center gap-2 mb-3">
+                                 <span class="badge bg-white border text-secondary fw-normal">{{ str_replace('_', ' ', $sinistre->type_sinistre) }}</span>
+                                 <span class="fw-bold text-dark ms-auto">{{ number_format($sinistre->montant_total, 0, ',', ' ') }} FCFA</span>
+                             </div>
+
+                             <div class="d-grid gap-2">
+                                <a href="{{ route('admin.sinistres.show', $sinistre) }}" class="btn btn-sm rounded-3" style="background-color: #6d28d9; color: white;">Examiner le dossier</a>
+                             </div>
+                         </div>
                     </div>
                     @empty
-                    <div class="text-center py-4 text-muted">
-                        Aucun sinistre en attente
+                     <div class="text-center py-5">
+                        <i class="bi bi-check-circle text-muted fs-1 mb-3 d-block opacity-25"></i>
+                        <p class="text-muted">Tout est à jour !</p>
                     </div>
                     @endforelse
                 </div>
+                
+                @if($recentSinistres->isNotEmpty())
+                <div class="mt-4 text-center">
+                    <a href="{{ route('admin.sinistres') }}" class="text-decoration-none fw-bold small" style="color: #6d28d9;">Voir tous les sinistres <i class="bi bi-arrow-right ms-1"></i></a>
+                </div>
+                @endif
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Polices -->
-<div class="card border-0 shadow-sm rounded-4">
-    <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
-        <h5 class="fw-bold mb-0">Polices récentes</h5>
-        <button class="btn btn-light border btn-sm px-3 rounded-pill bg-white shadow-sm">Voir toutes</button>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4 text-muted small py-3 border-0">ID Police</th>
-                        <th class="text-muted small py-3 border-0">Titulaire</th>
-                        <th class="text-muted small py-3 border-0">Plan</th>
-                        <th class="text-muted small py-3 border-0">Période</th>
-                        <th class="text-muted small py-3 border-0">Prime</th>
-                        <th class="text-muted small py-3 border-0">Statut</th>
-                        <th class="text-muted small py-3 border-0">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($recentPolices as $police)
-                    <tr>
-                        <td class="ps-4 fw-medium">{{ $police->numeroPolice }}</td>
-                        <td>{{ $police->user->name ?? '-' }}</td>
-                        <td>{{ $police->typePolice }}</td>
-                        <td class="text-muted small">{{ $police->dateDebut->format('d/m/Y') }} - {{ $police->dateFin->format('d/m/Y') }}</td>
-                        <td class="fw-bold">{{ number_format($police->primeMensuelle, 0, ',', ' ') }} FCFA</td>
-                        <td>
-                            @if($police->statut === 'actif')
-                                <span class="badge bg-primary rounded-pill px-3 py-2">Actif</span>
-                            @else
-                                <span class="badge bg-success rounded-pill px-3 py-2">{{ ucfirst($police->statut) }}</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="d-flex gap-2">
-                                <a  href="{{ route('admin.polices.show', $police->id) }}"><button class="btn btn-light btn-sm text-muted"><i class="bi bi-eye"></i></button></a>
-                                <button class="btn btn-light btn-sm text-muted"><i class="bi bi-download"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
         </div>
     </div>
 </div>

@@ -14,6 +14,12 @@
                 <h1 class="fw-bold mb-3">Bon retour parmi nous</h1>
                 <p class="text-muted mb-4">Connectez-vous pour accéder à votre espace personnel</p>
 
+                @if (session('status'))
+                    <div class="alert alert-success mb-4" role="alert">
+                        {{ session('status') }}
+                    </div>
+                @endif
+
                 <form action="{{ route('login') }}" method="POST">
                     @csrf
                     
@@ -28,7 +34,7 @@
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label fw-medium mb-0">Mot de passe</label>
-                            <a href="#" class="text-primary text-decoration-none small">Mot de passe oublié ?</a>
+                            <a href="{{ route('password.request') }}" class="text-primary text-decoration-none small">Mot de passe oublié ?</a>
                         </div>
                         <input type="password" name="password" class="form-control py-2" placeholder="........" required>
                         @error('password')

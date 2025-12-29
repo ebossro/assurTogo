@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Police;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -12,23 +13,23 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        // Récupérer les polices de l'utilisateur avec relations
-        $polices = Police::where('user_id', $user->id)->with(['paiements', 'sinistres'])->latest()->get();
+        // Récupérer la police de l'utilisateur avec relations
+        $police = Police::where('user_id', $user->id)->with(['paiements', 'sinistres'])->first();
         
         // Statistiques
-        $activePolicesCount = $polices->where('statut', 'actif')->count();
-        $totalMonthlyPremium = $polices->where('statut', 'actif')->sum('primeMensuelle');
+        $activePolicesCount = ($police && $police->statut === 'actif') ? 1 : 0;
+        $totalMonthlyPremium = ($police && $police->statut === 'actif') ? $police->primeMensuelle : 0;
         
-        // Prochaine échéance (la police qui expire le plus tôt parmi les actives)
-        $nextRenewalPolicy = $polices->where('statut', 'actif')->sortBy('dateFin')->first();
-        $daysUntilRenewal = $nextRenewalPolicy ? now()->diffInDays($nextRenewalPolicy->dateFin, false) : null;
+        // Prochaine échéance 
+        $nextRenewalPolicy = ($police && $police->statut === 'actif') ? $police : null;
+        $daysUntilRenewal = ceil($nextRenewalPolicy ? Carbon::now()->diffInDays(Carbon::parse($police->dateFin), false) : null);
 
         // Sinistres récents
-        $recentClaims = $user->polices->flatMap->sinistres->sortByDesc('created_at')->take(3);
+        $recentClaims = $police ? $police->sinistres->sortByDesc('created_at')->take(3) : collect();
 
         return view('dashboard.index', compact(
             'user', 
-            'polices', 
+            'police', 
             'activePolicesCount', 
             'totalMonthlyPremium', 
             'nextRenewalPolicy',

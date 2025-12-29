@@ -7,12 +7,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Role;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Auth\Events\PasswordReset;
+
 
 class AuthController extends Controller
 {
     public function showRegister()
     {
-        return view('auth.auth', ['action' => 'register']);
+        return view('auth.register');
     }
 
     // Traiter l'inscription
@@ -23,7 +27,7 @@ class AuthController extends Controller
             'nom' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'telephone' => 'nullable|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed|',
         ]);
 
         // Récupérer le rôle 'client' par défaut
@@ -46,7 +50,7 @@ class AuthController extends Controller
     // Afficher le formulaire de connexion
     public function showLogin()
     {
-        return view('auth.auth', ['action' => 'login']);
+        return view('auth.login');
     }
 
     // Traiter la connexion
@@ -93,5 +97,57 @@ class AuthController extends Controller
     public function showForgotPassword()
     {
         return view('auth.forgot-password');
+    }
+
+    // Envoyer le lien de réinitialisation
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with(['status' => __($status)]);
+        }
+
+        return back()->withErrors(['email' => __($status)]);
+    }
+
+    // Afficher le formulaire de réinitialisation
+    public function showResetForm(Request $request, $token = null)
+    {
+        return view('auth.reset-password')->with(
+            ['token' => $token, 'email' => $request->email]
+        );
+    }
+
+    // Réinitialiser le mot de passe
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            // Mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial
+            'password' => 'required|min:8|confirmed|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password)
+                ])->setRememberToken(Str::random(60));
+
+                $user->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('login')->with('status', __($status));
+        }
+
+        return back()->withErrors(['email' => [__($status)]]);
     }
 }

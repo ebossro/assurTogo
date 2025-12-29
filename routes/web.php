@@ -9,7 +9,9 @@ use App\Http\Controllers\PoliceController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\SinistreController;
+use App\Http\Controllers\DocumentController;
 use Illuminate\Support\Facades\Mail;
+
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -23,6 +25,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
@@ -41,20 +46,38 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/polices/{police}/print', [AdminController::class, 'printPolice'])->name('admin.polices.print');
     Route::get('/admin/sinistres', [AdminController::class, 'sinistres'])->name('admin.sinistres');
     Route::get('/admin/sinistres/{sinistre}', [AdminController::class, 'showSinistre'])->name('admin.sinistres.show');
+    Route::post('/admin/sinistres/{sinistre}/analyze', [AdminController::class, 'analyzeSinistre'])->name('admin.sinistres.analyze');
     Route::post('/admin/sinistres/{sinistre}/approve', [AdminController::class, 'approveSinistre'])->name('admin.sinistres.approve');
     Route::post('/admin/sinistres/{sinistre}/reject', [AdminController::class, 'rejectSinistre'])->name('admin.sinistres.reject');
+    Route::post('/admin/sinistres/{sinistre}/reject', [AdminController::class, 'rejectSinistre'])->name('admin.sinistres.reject');
+
+    Route::get('/admin/users', [AdminController::class, 'users'])->name('admin.users');
+    Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
+    Route::get('/admin/users/{user}', [AdminController::class, 'showUser'])->name('admin.users.show');
+    Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
+
+    Route::get('/admin/history', [AdminController::class, 'history'])->name('admin.history');
+    Route::get('/admin/analytics', [AdminController::class, 'analytics'])->name('admin.analytics');
 
     // Routes Polices
     Route::get('/polices', [PoliceController::class, 'index'])->name('polices.index');
+    Route::get('/polices/history', [PoliceController::class, 'history'])->name('polices.history');
     Route::get('/polices/create', [PoliceController::class, 'create'])->name('polices.create');
     Route::post('/polices', [PoliceController::class, 'store'])->name('polices.store');
     Route::get('/polices/confirmation', [PoliceController::class, 'confirmation'])->name('polices.confirmation');
     Route::get('/polices/{police}', [PoliceController::class, 'show'])->name('polices.show');
+    Route::get('/polices/{police}/attestation', [PoliceController::class, 'downloadAttestation'])->name('polices.download_attestation');
     Route::get('/polices/{police}/edit', [PoliceController::class, 'edit'])->name('polices.edit');
     Route::put('/polices/{police}', [PoliceController::class, 'update'])->name('polices.update');
     Route::delete('/polices/{police}', [PoliceController::class, 'destroy'])->name('polices.destroy');
 
     // Routes Sinistres
     Route::resource('sinistres', SinistreController::class);
+
+    // Routes Documents
+    Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('/documents/{document}/delete', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
 });

@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Beneficiaire extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'police_id',
         'nomBeneficiaire',

@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Formule;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 
 class PoliceController extends Controller
 {
@@ -18,21 +17,26 @@ class PoliceController extends Controller
      */
     public function index()
     {
-        $police = request()->user()->police;
-        
+        // Récupérer la dernière police (active ou en attente)
+        $police = request()->user()->polices()->latest()->first();
+
         $daysRemaining = null;
         $isExpired = false;
         $isExpiringSoon = false;
-        
+
         if ($police && $police->dateFin) {
             // Calculer le nombre de jours restants avec Carbon
             $dateFin = Carbon::parse($police->dateFin);
             $now = Carbon::now();
-            
-            $daysRemaining = ceil($now->diffInDays($dateFin, false)); 
-            
+
+            $daysRemaining = ceil($now->diffInDays($dateFin, false));
+
             $isExpired = $daysRemaining < 0;
-            $isExpiringSoon = !$isExpired && $daysRemaining >= 0 && $daysRemaining <= 7;
+            $isExpiringSoon = ceil($daysRemaining >= 0 && $daysRemaining <= 7);
+
+            if ($isExpired && $police->statut === 'actif') {
+                $police->update(['statut' => 'expire']);
+            }
         }
 
         return view('polices.index', compact('police', 'isExpired', 'isExpiringSoon', 'daysRemaining'));
@@ -43,27 +47,28 @@ class PoliceController extends Controller
      */
     public function create()
     {
-        $police = request()->user()->police;
+        // Vérification d'une police
+        $activePolice = request()->user()->polices()->whereIn('statut', ['actif', 'en_attente'])->first();
+        $latestPolice = request()->user()->polices()->latest()->first();
+
         $isRenewal = false;
-        
-        if ($police && $police->dateFin) {
-            // Calculer avec Carbon pour vérifier si la police est expirée
-            $dateFin = Carbon::parse($police->dateFin)->startOfDay();
-            $now = Carbon::now()->startOfDay();
-            $daysRemainingRaw = $now->diffInDays($dateFin, false);
-            $isExpired = $daysRemainingRaw < 0;
-            
-            // Si la police n'est pas expirée, on ne peut pas renouveler
-            if (!$isExpired) {
-                return redirect()->route('polices.index')->with('info', 'Vous avez déjà une police active.');
-            }
-            
-            // Si la police est expirée, c'est un renouvellement
-            $isRenewal = true;
+
+        // Si une police active existe, on bloque
+        if ($activePolice) {
+            return redirect()->route('polices.index')->with('info', 'Vous avez déjà une police active ou en cours de validation.');
         }
-        
+
+        // Si la dernière police est expirée/résiliée, c'est un renouvellement
+        if ($latestPolice && in_array($latestPolice->statut, ['expire', 'resilie', 'suspendu'])) {
+            $isRenewal = true;
+            $police = $latestPolice;
+        } else {
+            $police = null;
+        }
+
+        // Charger les formules et afficher le formulaire 
         $formules = Formule::all();
-        return view('polices.create', compact('formules', 'isRenewal'));
+        return view('polices.create', compact('formules', 'isRenewal', 'police'));
     }
 
     /**
@@ -72,34 +77,27 @@ class PoliceController extends Controller
     public function store(Request $request)
     {
         $user = request()->user();
-        if ($user->police && $user->police->dateFin) {
-            // Vérifier avec Carbon si la police est expirée pour permettre le renouvellement
-            $dateFin = Carbon::parse($user->police->dateFin)->startOfDay();
-            $now = Carbon::now()->startOfDay();
-            $daysRemainingRaw = $now->diffInDays($dateFin, false);
-            $isExpired = $daysRemainingRaw < 0;
 
-            // Si la police n'est pas expirée, on ne peut pas renouveler
-            if (!$isExpired) {
-                return redirect()->route('polices.index')->with('error', 'Vous avez déjà une police active. Vous ne pouvez renouveler que si votre police est expirée.');
-            }
-            
-            // Supprimer l'ancienne police expirée pour créer la nouvelle
-            $user->police->delete();
+        // pas de police active ou en attente
+        $activePolice = $user->polices()->whereIn('statut', ['actif', 'en_attente'])->first();
+        if ($activePolice) {
+            return redirect()->route('polices.index')->with('error', 'Vous avez déjà une police active ou en cours de validation.');
         }
 
         // 1. Validation de tous les champs
+        $photoValidation = $user->photo_profil ? 'nullable|image|max:2048' : 'required|image|max:2048';
+
         $validated = $request->validate([
             // Infos User
             'nom' => 'required|string',
             'prenom' => 'required|string',
             'date_naissance' => 'required|date',
             'sexe' => 'required|in:M,F',
-            'photo_profil' => 'required|image|max:2048',
+            'photo_profil' => $photoValidation,
             'type_piece' => 'required|string',
-            'numero_piece' => 'required|string',
+            'numero_piece' => 'required|string|digits:11',
             'date_expiration_piece' => 'required|date',
-            'telephone' => 'required|string',
+            'telephone' => 'required|string|digits:8',
             'email' => 'required|email',
             'adresse' => 'required|string',
             'ville' => 'required|string',
@@ -119,19 +117,23 @@ class PoliceController extends Controller
             'consentement_conditions' => 'accepted',
 
             // Bénéficiaires
-            'beneficiaires' => ['nullable', 'array', function ($attribute, $value, $fail) use ($request) {
-                // Limites strictes par formule
-                $limits = [
-                    'Basique' => 0,
-                    'Standard' => 2,
-                    'Confort' => 4,
-                    'Premium' => 8,
-                ];
-                $formule = $request->input('formule');
-                if (isset($limits[$formule]) && count($value) > $limits[$formule]) {
-                    $fail("La formule {$formule} ne permet pas plus de {$limits[$formule]} bénéficiaire(s).");
+            'beneficiaires' => [
+                'nullable',
+                'array',
+                function ($attribute, $value, $fail) use ($request) {
+                    // Limites strictes par formule
+                    $limits = [
+                        'Basique' => 0,
+                        'Standard' => 2,
+                        'Confort' => 4,
+                        'Premium' => 8,
+                    ];
+                    $formule = $request->input('formule');
+                    if (isset($limits[$formule]) && count($value) > $limits[$formule]) {
+                        $fail("La formule {$formule} ne permet pas plus de {$limits[$formule]} bénéficiaire(s).");
+                    }
                 }
-            }],
+            ],
             'beneficiaires.*.nom' => 'required_with:beneficiaires|string',
             'beneficiaires.*.prenom' => 'required_with:beneficiaires|string',
             'beneficiaires.*.relation' => 'required_with:beneficiaires|string',
@@ -171,9 +173,9 @@ class PoliceController extends Controller
         // 4. Calcul du prix
         $formule = Formule::where('nom', $validated['formule'])->first();
         $prime = $formule->prix_mensuel;
-        
+
         // 5. Création de la Police
-        $police = $user->police()->create([
+        $police = $user->polices()->create([
             'numeroPolice' => 'POL-' . strtoupper(uniqid()),
             'typePolice' => 'Assurance Santé ' . $validated['formule'], // Description
             'formule_id' => $formule->id,
@@ -197,16 +199,12 @@ class PoliceController extends Controller
                     'prenomBeneficiaire' => $b['prenom'],
                     'relationBeneficiaire' => $b['relation'],
                     'dateNaissanceBeneficiaire' => $b['date_naissance'],
-                    'genreBeneficiaire' => $b['sexe'], // attention à l'enum dans la migration benef
+                    'genreBeneficiaire' => $b['sexe'],
                     'statutBeneficiaire' => 'actif',
-                    'telephoneBeneficiaire' => 'N/A', // Champ requis dans la migration précédente ? Vérifions.
+                    'telephoneBeneficiaire' => 'N/A', 
                 ]);
             }
         }
-
-        /*
-        // Role update logic disabled as per previous instruction
-        */
 
         return redirect()->route('polices.confirmation');
     }
@@ -229,9 +227,21 @@ class PoliceController extends Controller
             abort(403);
         }
 
-        $police->load(['beneficiaires', 'sinistres']);
+        $police->load(['beneficiaires', 'sinistres', 'formule']);
 
         return view('polices.show', compact('police'));
+    }
+
+    /**
+     * Afficher l'historique des polices de l'utilisateur.
+     */
+    public function history()
+    {
+        // Récupérer la police de l'utilisateur suspendue, resilie ou expire
+        $user = Auth::user();
+        $polices = $user->polices()->whereIn('statut', ['suspendu', 'resilie', 'expire'])->get();
+
+        return view('polices.history', compact('polices'));
     }
 
     /**
@@ -256,5 +266,25 @@ class PoliceController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Télécharger l'attestation d'assurance.
+     */
+    public function downloadAttestation(Police $police)
+    {
+        // Vérification que l'utilisateur est bien le propriétaire
+        if ($police->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        // Vérification que la police est active
+        if ($police->statut !== 'actif') {
+            return back()->with('error', 'L\'attestation n\'est disponible que pour les polices actives.');
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.attestation', compact('police'));
+
+        return $pdf->download('Attestation_Assurance_' . $police->numeroPolice . '.pdf');
     }
 }

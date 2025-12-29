@@ -12,11 +12,20 @@
             <h2 class="fw-bold mb-3">Réinitialiser votre mot de passe</h2>
             <p class="text-muted mb-4">Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe</p>
 
-            <form action="#" method="POST">
+            @if (session('status'))
+                <div class="alert alert-success mb-4" role="alert">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            <form action="{{ route('password.email') }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label class="form-label fw-medium">Adresse email</label>
                     <input type="email" name="email" class="form-control py-2 bg-light border-0" placeholder="ebossro@gmail.com" required>
+                    @error('email')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mb-4">Envoyer le lien de réinitialisation</button>

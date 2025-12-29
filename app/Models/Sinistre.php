@@ -3,22 +3,36 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Sinistre extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'police_id',
+        'beneficiaire_id',
         'reference',
-        'description',
+        'type_sinistre',
+        'lieu_sinistre',
+        'ville_pays',
         'date_sinistre',
-        'montant_estime',
+        'premiere_consultation',
+        'gravite',
+        'description',
+        'diagnostic',
+        'medecin_traitant',
+        'traitement_prescrit',
+        'montant_total',
+        'is_declarant_different',
+        'declarant_nom',
+        'declarant_relation',
+        'commentaires',
+        'consentement',
         'statut',
-        'fichier_preuve',
     ];
 
     protected $casts = [
         'date_sinistre' => 'date',
-        'montant_estime' => 'decimal:2',
     ];
 
     public function police()
@@ -29,5 +43,10 @@ class Sinistre extends Model
     public function documents()
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function beneficiaire()
+    {
+        return $this->belongsTo(Beneficiaire::class);
     }
 }

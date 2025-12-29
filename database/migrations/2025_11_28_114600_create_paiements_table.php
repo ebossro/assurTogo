@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('police_id')->constrained('police')->onDelete('cascade');
             $table->decimal('montant', 10, 2);
             $table->string('reference')->unique();
-            $table->string('type_paiement'); // prime, frais, etc.
-            $table->string('mode_paiement'); // mobile money, virement, etc.
+            $table->string('type_paiement'); 
+            $table->string('mode_paiement'); 
             $table->date('date_paiement');
             $table->date('date_echeance')->nullable();
             $table->enum('statut', ['en_attente', 'paye', 'echoue'])->default('en_attente');

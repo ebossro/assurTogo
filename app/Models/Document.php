@@ -10,13 +10,13 @@ class Document extends Model
         'police_id',
         'sinistre_id',
         'user_id',
-        'nomDocument',
+        // 'nomDocument',
         'typeDocument',
         'cheminDocument',
         'statutDocument',
         'dateTeleversementDocument',
         'tailleDocument',
-        'formatDocument',
+        // 'formatDocument',
     ];
 
     protected $casts = [

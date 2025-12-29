@@ -78,6 +78,12 @@
             padding-top: 4rem;
             padding-bottom: 2rem;
         }
+        .hover-scale {
+            transition: transform 0.2s ease-in-out;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>

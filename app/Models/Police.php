@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Police extends Model
 {
-    protected $table = 'police'; // Nom de la table au singulier dans la migration
-    
+    use HasFactory;
+    protected $table = 'police'; 
+
     protected $fillable = [
         'user_id',
         'numeroPolice',
@@ -17,10 +19,8 @@ class Police extends Model
         'dateDebut',
         'dateFin',
         'primeMensuelle',
-        'frequence_paiement',
         'statut',
         'date_rendez_vous',
-        // Infos médicales
         'antecedents_medicaux',
         'medicaments_actuels',
         'allergies',

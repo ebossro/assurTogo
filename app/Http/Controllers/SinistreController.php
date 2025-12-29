@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Sinistre;
+use Illuminate\Support\Facades\DB;
 
 class SinistreController extends Controller
 {
@@ -14,17 +15,21 @@ class SinistreController extends Controller
     {
         $user = request()->user();
         
-        // Récupérer les sinistres liés aux polices de l'utilisateur
+        // Récupérer les sinistres liés à la police de l'utilisateur
         $sinistres = Sinistre::whereHas('police', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })->latest('date_sinistre')->get();
 
         // Calcul des statistiques
-        $totalRembourse = $sinistres->where('statut', 'valide')->sum('montant_estime'); // Ou montant_rembourse si dispo
-        $totalEnAttente = $sinistres->where('statut', 'en_cours')->sum('montant_estime');
+        $totalRembourse = $sinistres->where('statut', 'approuve')->sum('montant_total'); 
+        $totalEnAttente = $sinistres->whereIn('statut', ['en_attente', 'en_analyse'])->sum('montant_total');
         $nombreTraites = $sinistres->whereIn('statut', ['valide', 'rejete'])->count();
 
-        return view('sinistres.index', compact('sinistres', 'totalRembourse', 'totalEnAttente', 'nombreTraites'));
+        // Vérifier si la police est encore valide
+        $police = $user->polices()->latest()->first();
+        $canDeclareSinistre = $police && $police->dateFin >= now()->startOfDay();
+
+        return view('sinistres.index', compact('sinistres', 'totalRembourse', 'totalEnAttente', 'nombreTraites', 'canDeclareSinistre'));
     }
 
     /**
@@ -32,8 +37,14 @@ class SinistreController extends Controller
      */
     public function create()
     {
-        $polices = request()->user()->polices()->where('statut', 'actif')->get();
-        return view('sinistres.create', compact('polices'));
+        // On récupère la police active
+        $police = request()->user()->polices()->with('beneficiaires')->where('statut', 'actif')->latest()->first();
+        
+        if (!$police) {
+             return redirect()->route('polices.create')->with('warning', 'Vous devez avoir une police active pour déclarer un sinistre.');
+        }
+
+        return view('sinistres.create', compact('police'));
     }
 
     /**
@@ -43,30 +54,77 @@ class SinistreController extends Controller
     {
         $validated = $request->validate([
             'police_id' => 'required|exists:police,id',
+            'beneficiaire_id' => 'nullable|exists:beneficiaires,id',
+            'type_sinistre' => 'required|in:maladie,accident,hospitalisation,maternite,chirurgie',
+            'lieu_sinistre' => 'required|string|max:255',
+            'ville_pays' => 'required|string|max:255',
             'date_sinistre' => 'required|date|before_or_equal:today',
+            'premiere_consultation' => 'boolean', 
+            'gravite' => 'required|in:leger,moyen,grave',
             'description' => 'required|string|min:10',
-            'montant_estime' => 'required|numeric|min:0',
-            'fichier_preuve' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'diagnostic' => 'nullable|string',
+            'medecin_traitant' => 'nullable|string',
+            'traitement_prescrit' => 'nullable|string',
+            'montant_total' => 'required|numeric|min:0',
+
+            'is_declarant_different' => 'boolean',
+            'declarant_nom' => 'required_if:is_declarant_different,1,true|nullable|string',
+            'declarant_relation' => 'required_if:is_declarant_different,1,true|nullable|string',
+            'commentaires' => 'nullable|string',
+            'consentement' => 'accepted',
+            'documents' => 'required|array|min:1',
+            'documents.*.type' => 'required|in:certificat_medical,facture,examen,ordonnance,rapport_medical,identite,autre',
+            'documents.*.file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
-        if ($request->hasFile('fichier_preuve')) {
-            $path = $request->file('fichier_preuve')->store('proofs', 'public');
-            $validated['fichier_preuve'] = $path;
-        }
-
-        Sinistre::create(
-            [
-                'police_id' => $validated['police_id'],
+        $sinistre = Sinistre::create([
+            'police_id' => $validated['police_id'],
+            'beneficiaire_id' => $validated['beneficiaire_id'] ?? null,
+            'reference' => 'SIN-' . strtoupper(uniqid()),
+            'type_sinistre' => $validated['type_sinistre'],
+                'lieu_sinistre' => $validated['lieu_sinistre'],
+                'ville_pays' => $validated['ville_pays'],
                 'date_sinistre' => $validated['date_sinistre'],
+                'premiere_consultation' => $request->has('premiere_consultation') ? $request->boolean('premiere_consultation') : true,
+                'gravite' => $validated['gravite'],
                 'description' => $validated['description'],
-                'montant_estime' => $validated['montant_estime'],
-                'fichier_preuve' => $validated['fichier_preuve'],
-                'reference' => 'SIN-' . strtoupper(uniqid()),
-                'statut' => 'en_cours',
-            ]
-        );
+                'diagnostic' => $validated['diagnostic'] ?? null,
+                'medecin_traitant' => $validated['medecin_traitant'] ?? null,
+                'traitement_prescrit' => $validated['traitement_prescrit'] ?? null,
+                'montant_total' => $validated['montant_total'],
 
-        return redirect()->route('sinistres.index')->with('success', 'Votre sinistre a été déclaré avec succès.');
+                'is_declarant_different' => $request->boolean('is_declarant_different'),
+                'declarant_nom' => $validated['declarant_nom'] ?? null,
+                'declarant_relation' => $validated['declarant_relation'] ?? null,
+                'commentaires' => $validated['commentaires'] ?? null,
+                'consentement' => true,
+                'statut' => 'en_attente',
+            ]);
+
+            // Re-approach for file loop:
+            $files = $request->file('documents');
+            $types = $request->input('documents');
+
+            foreach ($files as $index => $fileWrapper) {
+                
+                $uploadedFile = $fileWrapper['file'];
+                $docType = $types[$index]['type'];
+
+                $path = $uploadedFile->store('documents/' . date('Y/m'), 'public');
+
+                $sinistre->documents()->create([
+                    'police_id' => $sinistre->police_id,
+                    'user_id' => $request->user()->id,
+                    'typeDocument' => $docType,
+                    'cheminDocument' => $path,
+                    'tailleDocument' => $uploadedFile->getSize(),
+                    'statutDocument' => 'actif',
+                ]);
+            }
+
+            return redirect()->route('sinistres.index')->with('success', 'Votre sinistre a été déclaré avec succès et est en attente d\'analyse.');
+
+         
     }
 
     /**

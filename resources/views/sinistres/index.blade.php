@@ -9,11 +9,40 @@
     </div>
     
     <div>
-        <a href="{{ route('sinistres.create') }}" class="btn btn-primary px-4 py-2 rounded-3 fw-medium">
-            <i class="bi bi-plus-lg me-2"></i>Déclarer un sinistre
-        </a>
+        <!--  -->
+        @if($canDeclareSinistre)
+            <a href="{{ route('sinistres.create') }}" class="btn btn-primary px-4 py-2 rounded-3 fw-medium">
+                <i class="bi bi-plus-lg me-2"></i>Déclarer un sinistre
+            </a>
+        @endif
     </div>
 </div>
+
+    <!-- Feedback Alerts -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if(session('info'))
+        <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i> {{ session('info') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
 <!-- Stats Cards -->
 <div class="row g-4 mb-5">
@@ -58,7 +87,7 @@
                         </div>
                         <div>
                             <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                <h6 class="fw-bold text-dark mb-0">{{ $sinistre->description }}</h6> <!-- Assumed description is the title or use a type field -->
+                                <h6 class="fw-bold text-dark mb-0">{{ $sinistre->description }}</h6>
                                 @php
                                     $statusClass = match($sinistre->statut) {
                                         'valide' => 'success',
@@ -78,16 +107,17 @@
                             <div class="text-muted small d-flex flex-wrap gap-3 align-items-center">
                                 <span><i class="bi bi-calendar me-1"></i> {{ $sinistre->date_sinistre->translatedFormat('d M Y') }}</span>
                                 <span>•</span>
-                                <span class="fw-medium text-dark">{{ number_format($sinistre->montant_estime, 0, ',', ' ') }} FCFA</span>
+                                <span class="fw-medium text-dark">{{ number_format($sinistre->montant_total, 0, ',', ' ') }} FCFA</span>
                                 @if($sinistre->police && $sinistre->police->typePolice)
                                     <span>•</span>
                                     <span>{{ $sinistre->police->typePolice }}</span>
                                 @endif
                             </div>
                             <div class="text-muted small mt-1">
-                                <i class="bi bi-clock me-1"></i> Soumis le {{ $sinistre->created_at->translatedFormat('d M Y') }} 
+                                {{-- date et heure de soumission --}}
+                                <i class="bi bi-clock me-1"></i> Soumis le {{ $sinistre->created_at->translatedFormat('d M Y') }} à {{ $sinistre->created_at->translatedFormat('H:i') }} 
                                 @if($sinistre->statut == 'valide' || $sinistre->statut == 'rejete')
-                                    • Traité le {{ $sinistre->updated_at->translatedFormat('d M Y') }}
+                                    • Traité le {{ $sinistre->updated_at->translatedFormat('d M Y') }} à {{ $sinistre->updated_at->translatedFormat('H:i') }}
                                 @endif
                             </div>
                         </div>

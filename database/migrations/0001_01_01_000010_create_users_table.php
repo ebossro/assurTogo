@@ -21,7 +21,7 @@ return new class extends Migration {
             // Informations d'identification
             $table->date('date_naissance')->nullable();
             $table->enum('sexe', ['M', 'F'])->nullable();
-            $table->string('photo_profil')->nullable(); // Obligatoire dans le formulaire, mais nullable ici pour éviter les erreurs sur les anciens seeds si nécessaire, ou on le met non nullable si on veut être strict. Le user a dit "La photo aussi est obligatoire".
+            $table->string('photo_profil')->nullable();
             $table->string('type_piece')->nullable();
             $table->string('numero_piece')->nullable();
             $table->date('date_expiration_piece')->nullable();

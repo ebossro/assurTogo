@@ -25,9 +25,15 @@
         <!-- Buttons -->
         <div class="d-flex justify-content-center gap-3 mb-5">
             @auth
+            @if (auth()->user()->police && auth()->user()->police->statut === 'en_attente')
+                <a href="{{ route('polices.confirmation') }}" class="btn btn-primary btn-lg px-4 py-3 rounded-3 shadow-lg border-0">
+                    Souscrire maintenant
+                </a>
+            @else
                 <a href="{{ route('polices.create') }}" class="btn btn-primary btn-lg px-4 py-3 rounded-3 shadow-lg border-0">
                     Souscrire maintenant
                 </a>
+            @endif
             @else
                 <a href="{{ route('register') }}" class="btn btn-primary btn-lg px-4 py-3 rounded-3 shadow-lg border-0">
                     Commencer gratuitement
@@ -323,7 +329,7 @@
         <p class="lead mb-5 text-white-50">Rejoignez des milliers d'assurés qui ont déjà choisi la simplicité et la transparence.</p>
         <div class="d-flex justify-content-center gap-3">
             @auth
-                @if(Auth::user()->polices()->exists())
+                @if(Auth::user()->police)
                     <a href="{{ route('dashboard.index') }}" class="btn btn-success btn-lg px-4 fw-bold shadow">
                         Aller au tableau de bord <i class="bi bi-arrow-right ms-2"></i>
                     </a>
@@ -343,6 +349,14 @@
         </div>
     </div>
 </section>
+    <!-- Chatbot Trigger Button -->
+    <div class="position-fixed bottom-0 end-0 m-4 z-3">
+        <button class="btn btn-lg rounded-pill shadow-lg d-flex align-items-center gap-2 text-white hover-scale" 
+                style="background-color: #1c03ff; border: none; padding: 12px 24px; transition: transform 0.2s;">
+            <i class="bi bi-stars"></i>
+            <span class="fw-bold">Emmanuel IA</span>
+        </button>
+    </div>
 @endsection
 
 @section('footer')

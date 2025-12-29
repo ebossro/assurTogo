@@ -43,7 +43,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="text-muted small text-uppercase fw-bold mb-1">Montant estimé</label>
-                        <p class="fw-bold text-primary fs-5 mb-0">{{ number_format($sinistre->montant_estime, 0, ',', ' ') }} FCFA</p>
+                        <p class="fw-bold text-primary fs-5 mb-0">{{ number_format($sinistre->montant_total, 0, ',', ' ') }} FCFA</p>
                     </div>
                     <div class="col-12">
                         <label class="text-muted small text-uppercase fw-bold mb-1">Description</label>
